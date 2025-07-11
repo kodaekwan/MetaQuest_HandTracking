@@ -116,3 +116,25 @@ MIT License (feel free to adapt for research or commercial use)
 
 Created by [KO DAEKWAN]  
 Meta Quest SDK (OVRHand), Unity3D, PyQtGraph
+
+---
+
+## 🦴 Bone Connection Topology
+
+The hand bone connection structure used for drawing finger joints is based on the XRHand (Meta Quest) indexing:
+
+```python
+bone_connection = [
+    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5),           # Thumb
+    (1, 6), (6, 7), (7, 8), (8, 9), (9, 10),          # Index
+    (1, 11), (11, 12), (12, 13), (13, 14), (14, 15),  # Middle
+    (1, 16), (16, 17), (17, 18), (18, 19), (19, 20),  # Ring
+    (1, 21), (21, 22), (22, 23), (23, 24), (24, 25),  # Little
+    (2, 6), (6, 11), (11, 16), (16, 21)               # palm transverse
+]
+```
+
+This defines:
+- Linear finger joint connectivity
+- Palm cross-line connections
+- Suitable for rendering hand skeletons in 3D
