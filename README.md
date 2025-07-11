@@ -52,7 +52,16 @@ pip install PyQt5 pyqtgraph numpy scipy
 
 ## 🚀 How to Run
 
-1. **Run the Unity Sender** (see Unity project setup)
+0. **Build the MetaAPP** 
+    ![screenshot](docs/script_unity3d_apply.png)
+
+    or
+
+    **Download MYAPP** 
+    (https://www.notion.so/MetaQuest-22dfad65497280f4aadaf1835ecbe7e3?source=copy_link#22dfad654972806a8cdadf09e9a4ddcb)
+
+1. **Run the MetaAPP**
+
 2. Then run this Python visualizer:
 ```bash
 python hand_tracking_udp_receiver.py
