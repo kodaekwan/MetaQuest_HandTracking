@@ -9,6 +9,7 @@ using System.Text;
 
 public class XRHandMultiClientServer : MonoBehaviour
 {
+    public OVRCameraRig cameraRig;  // 에디터에서 연결
     public OVRCustomSkeleton leftHandSkeleton;
     public OVRCustomSkeleton rightHandSkeleton;
     public int LISTEN_PORT = 9001;
@@ -31,6 +32,27 @@ public class XRHandMultiClientServer : MonoBehaviour
         listenThread.Start();
 
         Debug.Log($"[UDP Server] Listening on port {LISTEN_PORT}");
+    }
+
+    float[] GetHeadsetPoseArray()
+    {
+        float[] arr = new float[7]; // pos(3) + rot(4)
+
+        if (cameraRig == null || cameraRig.centerEyeAnchor == null)
+            return arr;
+    
+        Vector3 pos = cameraRig.centerEyeAnchor.position;
+        Quaternion rot = cameraRig.centerEyeAnchor.rotation;
+
+        arr[0] = pos.x;
+        arr[1] = pos.y;
+        arr[2] = pos.z;
+        arr[3] = rot.x;
+        arr[4] = rot.y;
+        arr[5] = rot.z;
+        arr[6] = rot.w;
+
+        return arr;
     }
 
     void ListenForClients()
@@ -91,6 +113,7 @@ public class XRHandMultiClientServer : MonoBehaviour
         // 각 손 데이터 준비 (없으면 0 채움)
         float[] left = GetHandArray(leftHandSkeleton);
         float[] right = GetHandArray(rightHandSkeleton);
+        float[] head = GetHeadsetPoseArray();
 
         byte[] header = System.Text.Encoding.ASCII.GetBytes("HND0");
         byte[] footer = System.Text.Encoding.ASCII.GetBytes("HND1");
@@ -98,8 +121,8 @@ public class XRHandMultiClientServer : MonoBehaviour
         byte[] ts_bytes = BitConverter.GetBytes(timestamp);
         
         // 총 패킷 크기 계산: header(4) + ts(8) + 2*26*3*4 + footer(4)
-        int floatCount = left.Length + right.Length; // 182 + 182 = 364
-        byte[] payload = new byte[4 + 8 + floatCount * 4 + 4]; // 1472 bytes
+        int floatCount = left.Length + right.Length +head.Length; // 182 + 182 + 7 = 371
+        byte[] payload = new byte[4 + 8 + floatCount * 4 + 4]; // 1500 bytes
 
         int ptr = 0;
         Array.Copy(header, 0, payload, ptr, 4); ptr += 4;
@@ -115,6 +138,13 @@ public class XRHandMultiClientServer : MonoBehaviour
         for (int i = 0; i < right.Length; i++)
         {
             Array.Copy(BitConverter.GetBytes(right[i]), 0, payload, ptr, 4);
+            ptr += 4;
+        }
+
+        // 헤드셋 pose (pos + rot)
+        for (int i = 0; i < head.Length; i++)
+        {
+            Array.Copy(BitConverter.GetBytes(head[i]), 0, payload, ptr, 4);
             ptr += 4;
         }
 

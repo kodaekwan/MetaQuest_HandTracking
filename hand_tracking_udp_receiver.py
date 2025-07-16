@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation as R
 # === 네트워크 설정 ===(메타퀘스트 IP 및 포트 번호)
 SERVER_IP = "192.168.0.133"
 SERVER_PORT = 9001
-BYTES_TOTAL = 1472
+BYTES_TOTAL = 1500
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)  # 1MB
@@ -185,7 +185,8 @@ def update():
     arr = np.frombuffer(data[12:-4], dtype=np.float32)
 
     arr_l = arr[:182]
-    arr_r = arr[182:]
+    arr_r = arr[182:-7]
+    arr_h = arr[-7:]
 
     update_hand(arr_l, scatter_l, lines_l, axes_l,root_axes_l)
     update_hand(arr_r, scatter_r, lines_r, axes_r,root_axes_r)
