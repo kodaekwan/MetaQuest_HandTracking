@@ -146,7 +146,7 @@ def update_head(raw_data, axes):
     rotations = rotations_unity
 
     # 회전 행렬은 별도로 변환된 것만 보관 (시각화 전용)
-    rot_mats = [RM_U2R @ r.as_matrix() for r in rotations]
+    rot_mats = [RM_U2R @ r.as_matrix() @ RM_U2R.T for r in rotations]
     
     points = np.array(points)
 
@@ -184,7 +184,8 @@ def update_hand(raw_data, scatter, lines, axes, root_axes):
     rotations = rotations_unity
 
     # 회전 행렬은 별도로 변환된 것만 보관 (시각화 전용)
-    rot_mats = [RM_U2R @ r.as_matrix() for r in rotations]
+    rot_mats = [RM_U2R @ r.as_matrix() @ RM_U2R.T for r in rotations]
+    
 
     points = np.array(points)
     scatter.setData(pos=points)
@@ -205,6 +206,7 @@ def update_hand(raw_data, scatter, lines, axes, root_axes):
     for j in range(3):  # x/y/z
         axis_line = np.array([origin, origin + Rmat[:, j] * 0.05])
         root_axes[j].setData(pos=axis_line)
+
 
 # === 디버깅용 시간 기록 변수 ===
 is_Time_Check = True;
