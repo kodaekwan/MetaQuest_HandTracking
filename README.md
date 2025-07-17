@@ -23,13 +23,14 @@ _(Add your screenshot or demo GIF here)_
 - Each hand sends:
   - Wrist pose: position (3 floats) + rotation (quaternion, 4 floats)
   - 25 bones: relative position (3 floats) + rotation (quaternion, 4 floats) each
-  - Total = `2 * (3+4 + 25*(3+4))` = `2 * 91` = 182 floats = 728 bytes × 2 + header/footer
+  - Total = `2 * (3+4 + 25*(3+4)) + 7` = `2 * 91 + 7` = 189 floats = 728 bytes × 2 + 28 bytes + header/footer 
 
 ### Python Side (Receiver)
-- Receives 1472-byte packet:
+- Receives 1500-byte packet:
   - 4-byte header `"HND0"`
   - 8-byte timestamp (`double`)
   - 728 bytes for each hand (182 floats each)
+  - 28 bytes for headset
   - 4-byte footer `"HND1"`
 - Parses and visualizes each hand's absolute pose in real-time.
 
