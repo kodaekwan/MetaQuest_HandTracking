@@ -54,11 +54,13 @@ pip install PyQt5 pyqtgraph numpy scipy
 
 ## 🚀 How to Run
 
-0. **Download [MYAPP:sideQuest](https://cdn.sidequestvr.com/file/2335338/meta_ar_server_app_03.apk)** 
+0. **Download [MYAPP](https://sidequestvr.com/app/43618/metaquest_handtracking)** 
 
-1. **Run the MetaAPP**
+1. Use SideQuest to install this app on your Meta Quest device.
 
-2. Then run this Python visualizer:
+2. **Run the MetaAPP**
+
+3. Then run this Python visualizer:
 ```bash
 python hand_tracking_udp_receiver.py
 ```
