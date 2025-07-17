@@ -11,8 +11,8 @@ This repository provides a **Python-based 3D visualizer** that receives real-tim
 
 ## 📸 Demo
 
-![screenshot](docs/screenshot.png)  
-_(Add your screenshot or demo GIF here)_
+![screenshot](docs/output.gif)  
+
 
 ---
 
