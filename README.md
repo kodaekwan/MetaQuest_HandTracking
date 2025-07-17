@@ -54,7 +54,8 @@ pip install PyQt5 pyqtgraph numpy scipy
 
 ## 🚀 How to Run
 
-0. **Download [[MYAPP]](https://cdn.sidequestvr.com/file/2335338/meta_ar_server_app_03.apk) or [[Sidequest]](https://sidequestvr.com/app/43618/metaquest_handtracking)** 
+0. **Download [[Sidequest]](https://sidequestvr.com/app/43618/metaquest_handtracking)**(comming soon)
+    *This app is available upon request. [Please contact us directly](http://irobot.dgu.edu/).
 
 1. Use SideQuest to install this app on your Meta Quest device.
 
