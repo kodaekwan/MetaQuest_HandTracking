@@ -4,6 +4,7 @@ This repository provides a **Python-based 3D visualizer** that receives real-tim
 
 - ✅ Wrist pose (world coordinates)
 - ✅ 25 bone poses (relative to wrist, position + rotation)
+- ✅ Headset pose (position + rotation)
 - ✅ Coordinate system transform (Unity → Robot/World)
 - ✅ Real-time 3D rendering with bone connections and axis directions
 
