@@ -56,6 +56,8 @@ RM_U2R = np.array([
     [0, 1, 0]
 ])
 
+#RM_U2R = np.eye(3)
+
 # === 본 연결 정보 ===
 bone_connection = [
     (0, 1), (1, 2), (2, 3), (3, 4), (4, 5),
@@ -71,7 +73,17 @@ app = QtWidgets.QApplication(sys.argv)
 w = gl.GLViewWidget()
 w.show()
 w.setWindowTitle('XRHand Full Pose Viewer')
-w.setCameraPosition(distance=1.5, azimuth=60, elevation=30)
+w.setCameraPosition(distance=1.5, azimuth=60, elevation=30 ) # <- 유니티 좌표계 기준 시점
+
+# x축 (빨강)
+x_axis = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [5, 0, 0]]), color=(1, 0, 0, 1), width=3, antialias=True)
+# y축 (초록)
+y_axis = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 5, 0]]), color=(0, 1, 0, 1), width=3, antialias=True)
+# z축 (파랑, 사용자 쪽에서 보면 안쪽 방향)
+z_axis = gl.GLLinePlotItem(pos=np.array([[0, 0, 0], [0, 0, 5]]), color=(0, 0, 1, 1), width=3, antialias=True)
+w.addItem(x_axis)
+w.addItem(y_axis)
+w.addItem(z_axis)
 
 for axis in [gl.GLGridItem() for _ in range(3)]:
     w.addItem(axis)
@@ -106,6 +118,9 @@ def create_axes(length=0.03):
 axes_l = [create_axes() for _ in range(26)]
 axes_r = [create_axes() for _ in range(26)]
 
+# 헤드셋 추가
+axes_h = [create_axes() for _ in range(1)]
+
 # === 복원 함수 ===
 def recover_world_pose(root_pos, root_rot_q, rel_pos, rel_rot_q):
     """
@@ -116,6 +131,31 @@ def recover_world_pose(root_pos, root_rot_q, rel_pos, rel_rot_q):
     abs_pos = root_pos + rel_pos_world
     abs_rot = root_rot_q * rel_rot_q
     return abs_pos, abs_rot
+
+
+def update_head(raw_data, axes):
+    head_pos = raw_data[0:3]
+    head_rot = R.from_quat((raw_data[3:7]))
+
+    points_unity = [head_pos]
+    rotations_unity = [head_rot]
+
+    # 🎯 여기서 일괄적으로 좌표계 변환 적용
+    points = [RM_U2R @ p for p in points_unity]
+    # 회전 객체 리스트를 유지 (쿼터니언 그대로 사용)
+    rotations = rotations_unity
+
+    # 회전 행렬은 별도로 변환된 것만 보관 (시각화 전용)
+    rot_mats = [RM_U2R @ r.as_matrix() for r in rotations]
+    
+    points = np.array(points)
+
+    for i in range(1):
+        origin = points[i]
+        Rmat = rot_mats[i]
+        for j in range(3):  # x,y,z 축
+            axes[i][j].setData(pos=np.array([origin, origin + Rmat[:, j]*0.08]))
+    
 
 # === 본 업데이트 ===
 def update_hand(raw_data, scatter, lines, axes, root_axes):
@@ -138,7 +178,8 @@ def update_hand(raw_data, scatter, lines, axes, root_axes):
         rotations_unity.append(abs_rot_u)
 
     # 🎯 여기서 일괄적으로 좌표계 변환 적용
-    points = [p @ RM_U2R.T for p in points_unity]
+    #points = [p @ RM_U2R.T for p in points_unity]
+    points = [RM_U2R @ p for p in points_unity]
     # 회전 객체 리스트를 유지 (쿼터니언 그대로 사용)
     rotations = rotations_unity
 
@@ -178,6 +219,7 @@ def update():
         return
 
     data = packet_queue.popleft()
+    print(len(data))
     if len(data) != BYTES_TOTAL or data[:4] != b"HND0" or data[-4:] != b"HND1":
         return
 
@@ -187,9 +229,12 @@ def update():
     arr_l = arr[:182]
     arr_r = arr[182:-7]
     arr_h = arr[-7:]
+    
 
-    update_hand(arr_l, scatter_l, lines_l, axes_l,root_axes_l)
-    update_hand(arr_r, scatter_r, lines_r, axes_r,root_axes_r)
+    update_hand(arr_l, scatter_l, lines_l, axes_l, root_axes_l)
+    update_hand(arr_r, scatter_r, lines_r, axes_r, root_axes_r)
+    update_head(arr_h,axes_h)
+
     w.setWindowTitle(f"XRHand Full Pose Viewer | ts={ts:.3f}")
 
     if(is_Time_Check):
