@@ -20,9 +20,10 @@ This repository provides a **Python-based 3D visualizer** that receives real-tim
 
 ### Unity Side (Transmitter)
 - Meta Quest hand-tracking (OVRHand)
-- Each hand sends:
+- Each hand and headset sends:
   - Wrist pose: position (3 floats) + rotation (quaternion, 4 floats)
   - 25 bones: relative position (3 floats) + rotation (quaternion, 4 floats) each
+  - Headset pose: position (3 floats) + rotation (quaternion, 4 floats)
   - Total = `2 * (3+4 + 25*(3+4)) + 7` = `2 * 91 + 7` = 189 floats = 728 bytes × 2 + 28 bytes + header/footer 
 
 ### Python Side (Receiver)
