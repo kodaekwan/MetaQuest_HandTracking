@@ -102,6 +102,7 @@ RM_U2R = np.array([
 - Palm and finger connection rendering
 - Local axis (XYZ) drawing per joint
 - Dual-hand support (left/right)
+- Headset support
 
 ---
 
