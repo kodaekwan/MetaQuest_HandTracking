@@ -54,13 +54,7 @@ pip install PyQt5 pyqtgraph numpy scipy
 
 ## 🚀 How to Run
 
-0. **Build the MetaAPP** 
-    ![screenshot](docs/script_unity3d_apply.png)
-
-    or
-
-    **Download MYAPP** 
-    (https://www.notion.so/MetaQuest-22dfad65497280f4aadaf1835ecbe7e3?source=copy_link#22dfad654972806a8cdadf09e9a4ddcb)
+0. **Download [MYAPP:sideQuest](https://cdn.sidequestvr.com/file/2335338/meta_ar_server_app_03.apk)** 
 
 1. **Run the MetaAPP**
 
