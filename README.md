@@ -78,18 +78,42 @@ python hand_tracking_udp_receiver.py
 
 ## 🧠 Coordinate Transformation
 
-The code transforms Unity’s coordinate system to robot/world coordinates:
+> ✅ Unity uses a **left-handed** coordinate system.  
+> ✅ Most robotics systems use a **right-handed** coordinate system.
+
+This code transforms Unity’s **left-handed coordinate system** to a typical robot or world **right-handed coordinate system**:
 
 ```python
 RM_U2R = np.array([
-    [0, 0, 1],    # x' = z
-    [-1, 0, 0],   # y' = -x
-    [0, 1, 0]     # z' = y
+    [0, 0, 1],    # Unity's z-axis → Robot's x-axis
+    [-1, 0, 0],   # Unity's x-axis → Robot's -y-axis
+    [0, 1, 0]     # Unity's y-axis → Robot's z-axis
 ])
 ```
 
-- All bone positions are transformed with `pos @ RM_U2R.T`
-- All rotations are transformed using `RM_U2R @ R.as_matrix()` (no back-conversion to Rotation object)
+### Transformations
+
+- **Position transformation**:  
+  All bone positions are transformed using:
+
+  ```python
+  transformed_pos = RM_U2R @ pos
+  ```
+
+- **Rotation transformation**:  
+  All rotation matrices are transformed using:
+
+  ```python
+  transformed_rot = RM_U2R @ R.as_matrix() @ RM_U2R.T
+  ```
+
+  ### Coordinate System Reference
+
+  | System   | +X       | +Y     | +Z       |
+  |----------|----------|--------|----------|
+  | Unity    | Right    | Up     | Forward  |
+  | Robot    | Forward  | Left   | Up       |
+
 
 ---
 
