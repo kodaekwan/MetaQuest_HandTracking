@@ -107,8 +107,7 @@ RM_U2R = np.array([
   transformed_rot = RM_U2R @ R.as_matrix() @ RM_U2R.T
   ```
 
-  ### Coordinate System Reference
-
+- **Coordinate System Reference**
   | System   | +X       | +Y     | +Z       |
   |----------|----------|--------|----------|
   | Unity    | Right    | Up     | Forward  |
