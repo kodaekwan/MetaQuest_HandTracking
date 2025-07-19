@@ -64,7 +64,7 @@ pip install PyQt5 pyqtgraph numpy scipy
 
 3. Then run this Python visualizer:
 ```bash
-python hand_tracking_udp_receiver.py
+python XRHandVisualizer.py
 ```
 
 If you're running on a remote X server or WSL2:
@@ -131,7 +131,8 @@ RM_U2R = np.array([
 
 ```
 .
-├── hand_tracking_udp_receiver.py   # Main Python visualizer
+├── XRHandVisualizer.py   # Main Python visualizer
+├── XRHandReceiver.py     # UDP Python communication
 ├── docs/
 │   └── screenshot.png              # Example rendering output
 └── README.md
