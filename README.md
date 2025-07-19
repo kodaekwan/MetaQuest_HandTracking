@@ -71,7 +71,7 @@ If you're running on a remote X server or WSL2:
 ```bash
 export DISPLAY=192.168.0.X:0.0
 export LIBGL_ALWAYS_INDIRECT=1
-python hand_tracking_udp_receiver.py
+python XRHandVisualizer.py
 ```
 
 ---
@@ -131,10 +131,10 @@ RM_U2R = np.array([
 
 ```
 .
-├── XRHandVisualizer.py   # Main Python visualizer
-├── XRHandReceiver.py     # UDP Python communication
+├── XRHandVisualizer.py   # Main 3D visualizer using PyQtGraph
+├── XRHandReceiver.py     # UDP data receiver and Unity-to-robot frame converter
 ├── docs/
-│   └── screenshot.png              # Example rendering output
+│   └── sample.png        # Example rendering output
 └── README.md
 ```
 
