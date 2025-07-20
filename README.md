@@ -54,18 +54,25 @@ pip install PyQt5 pyqtgraph numpy scipy
 ---
 
 ## 🚀 How to Run
+0. **Download [MetaQuest HandTracking App via SideQuest](https://sidequestvr.com/app/43618/metaquest_handtracking)** (Coming Soon)  
+  *This app is currently available only upon request. [Contact us here](http://irobot.dgu.edu/) for access.*
 
-0. **Download [[Sidequest]](https://sidequestvr.com/app/43618/metaquest_handtracking)**(comming soon)
-    *This app is available upon request. [Please contact us directly](http://irobot.dgu.edu/).
+1. **Install the app on your Meta Quest device**  
+  Use [SideQuest](https://sidequestvr.com/) to sideload the `.apk` to your device.
 
-1. Use SideQuest to install this app on your Meta Quest device.
+2. **Launch the Meta Quest App**  
+  On your headset, run the installed hand tracking application.
 
-2. **Run the MetaAPP**
-
-3. Then run this Python visualizer:
-```bash
-python XRHandVisualizer.py
-```
+3. **Update your Python script**  
+  In `XRHandVisualizer.py`, set the server IP to match your Quest device's IP:
+  ```python
+  receiver = XRHandReceiver(server_ip="192.168.0.XXX")  # Replace with your headset's IP address
+  ```
+  
+4. Then run this Python visualizer:
+  ```bash
+  python XRHandVisualizer.py
+  ```
 
 If you're running on a remote X server or WSL2:
 ```bash
