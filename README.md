@@ -54,7 +54,8 @@ pip install PyQt5 pyqtgraph numpy scipy
 ---
 
 ## 🚀 How to Run
-0. **Download [MetaQuest HandTracking App via SideQuest](https://sidequestvr.com/app/43618/metaquest_handtracking)** (Coming Soon)  
+
+0. **Download [MetaQuest HandTracking App via SideQuest](https://sidequestvr.com/app/43618/metaquest_handtracking)** (Coming Soon, 2025-09-22)
   *This app is currently available only upon request. [Contact us here](http://irobot.dgu.edu/) for access.*
 
 1. **Install the app on your Meta Quest device**  
