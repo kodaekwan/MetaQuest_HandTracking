@@ -47,7 +47,7 @@ class UdpImageSender:
     def _worker_loop(self):
         while not self._stop_event.is_set():
             if not self._queue:
-                time.sleep(0.005)
+                time.sleep(0.001)
                 continue
 
             # 최신 프레임만 꺼냄 (지연 누적 방지)
