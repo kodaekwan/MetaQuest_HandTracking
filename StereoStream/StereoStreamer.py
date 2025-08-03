@@ -5,6 +5,14 @@ import cv2
 import numpy as np
 import socket
 import struct
+try:
+    from turbojpeg import TurboJPEG
+    _USE_TURBOJPEG = True
+except ImportError:
+    TurboJPEG = None
+    _USE_TURBOJPEG = False
+    print("[INFO] TurboJPEG 모듈이 없어 OpenCV(imencode)로 fallback합니다.")
+
 
 class UdpImageSender:
     def __init__(self, ip, port, width, height, max_payload=60*1024, jpeg_quality=50):
@@ -22,6 +30,11 @@ class UdpImageSender:
         self._queue = collections.deque(maxlen=1)  # 최신 1장만 유지
         self._stop_event = threading.Event()
         self._worker = threading.Thread(target=self._worker_loop, daemon=True)
+        
+        if _USE_TURBOJPEG:
+            self.jpeg = TurboJPEG()
+        else:
+            self.jpeg = None
 
     def open(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -30,6 +43,18 @@ class UdpImageSender:
         if not self._worker.is_alive():
             self._worker = threading.Thread(target=self._worker_loop, daemon=True)
             self._worker.start()
+    
+    def encode_jpeg(self, img, quality=95):
+        if _USE_TURBOJPEG:
+            return self.jpeg.encode(img, quality=quality)
+        else:
+            # OpenCV fallback
+            success, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+            if not success:
+                print("[WARN] JPEG 인코딩 실패")
+                return b''
+            return buf.tobytes()
+    
 
     def connect(self):
         if self.sock is None:
@@ -58,13 +83,11 @@ class UdpImageSender:
             if (w, h) != (self.width, self.height):
                 img = cv2.resize(img, (self.width, self.height))
 
-            # JPEG 인코딩
-            success, buf = cv2.imencode(".jpg", img,
-                                        [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality])
-            if not success:
-                print("[WARN] JPEG 인코딩 실패")
+
+            # JPEG 인코딩 (TurboJPEG → OpenCV fallback)
+            data = self.encode_jpeg(img, self.jpeg_quality)
+            if not data:
                 continue
-            data = buf.tobytes()
 
             fid = self.frame_id & 0xFFFFFFFF
             self.frame_id += 1

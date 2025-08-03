@@ -45,7 +45,14 @@
 
    ```bash
    pip install opencv-python numpy pyrealsense2
+   
    ```
+   option install(improve encode)
+   ```bash
+   sudo apt-get install libturbojpeg
+   pip install pyTurboJPEG
+   ```
+
 
 ## ⚙️ Environment Variables
 
