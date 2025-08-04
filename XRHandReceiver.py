@@ -120,3 +120,48 @@ class XRHandReceiver:
                 "rotmat": head_rotmat_r
             }
         }
+    
+    #TODO:JWL2000
+    def update_hand(self, raw_data, type="rel"):
+        root_pos = raw_data[0:3]
+        root_rot = R.from_quat((raw_data[3:7]))
+
+        points_unity = [root_pos]
+        rotations_unity = [root_rot]
+
+        ptr = 7
+        for _ in range(25):
+            rel_pos = raw_data[ptr:ptr+3]; ptr += 3
+            rel_rot = raw_data[ptr:ptr+4]; ptr += 4
+
+            rel_rot = R.from_quat(rel_rot)
+            abs_pos_u, abs_rot_u = self.recover_world_pose(root_pos, root_rot, rel_pos, rel_rot) # 활성화하면 움직임.
+
+            if type == "rel":
+                points_unity.append(rel_pos)
+                rotations_unity.append(rel_rot)
+            else:
+                points_unity.append(abs_pos_u)
+                rotations_unity.append(abs_rot_u)  
+
+        # left to right coordinate
+        points = [self.RM_U2R @ p for p in points_unity]
+        rotations = rotations_unity
+        rot_mats = [self.RM_U2R @ r.as_matrix() @ self.RM_U2R.T for r in rotations]
+        points = pos_weight(points)
+        ref_rot = rotmat_weight(rot_mats[0])
+        points = [ref_rot @ p for p in points]
+        # ============================CUSTOM=============================
+        # EE 인덱스
+        tip_indices = [10, 15, 20, 5] # index, middle, ring, thumb
+        # 상대 위치 벡터 리스트
+        p_EE_w = [points[index] for index in tip_indices]
+        points = np.array(points)
+        # 필요한 인덱스만 다시 할당
+        thumb_points = points[2:6]
+        index_points = points[7:11]
+        middle_points = points[12:16]
+        ring_points = points[17:21]
+        points = np.vstack([index_points, middle_points, ring_points, thumb_points]) 
+        # ============================CUSTOM=============================  
+        return p_EE_w, points
