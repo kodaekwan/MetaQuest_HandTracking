@@ -16,7 +16,7 @@
 `StereoStream` is a Python utility that captures stereo images from a RealSense D405 camera, encodes them as JPEGs, splits the data into UDP packets, and streams them to external clients such as Meta Quest devices.
 
 * **UdpImageSender** class in StereoStreamer: Enables reliable UDP streaming with configurable image dimensions, resolution, JPEG quality, and maximum payload size.
-* **example.py**: Demonstrates how to capture frames from a RealSense camera and send them using `UdpImageSender`.
+* **example_metaquest.py**: Demonstrates how to capture frames from a RealSense camera and send them using `UdpImageSender`.
 
 ## 🚀 Key Features
 
@@ -77,7 +77,7 @@ StereoStreame/
 ## 📝 Usage
 
 1. Place `StereoStreamer.py` and `example.py` in the same directory.
-2. Edit `example.py` to match your environment (IP, port, resolution, etc.).
+2. Edit `example_metaquest.py` to match your environment (IP, port, resolution, etc.).
 3. Run the example:
 
    ```bash
@@ -105,7 +105,7 @@ cam.start_reader()
 sender = UdpImageSender(
     ip='192.168.0.133', port=9003,
     width=1280, height=480,
-    max_payload=60*1024, jpeg_quality=50
+    max_payload=1024, jpeg_quality=70
 )
 sender.open()
 sender.connect()
