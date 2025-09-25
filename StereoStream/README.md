@@ -69,7 +69,8 @@ export LIBGL_ALWAYS_INDIRECT=1
 StereoStreame/
 ├── StereoStreamer.py             # Definition of UdpImageSender class
 ├── camera_datacollection.py      # Definition of RealsenseCamera class
-├── example.py                    # Example script: RealSense → UDP streaming
+├── example_metaquest.py          # Example script for metaquest: RealSense → UDP streaming
+├── example_visionpro.py          # Example script for visionpro: RealSense → UDP streaming
 └── README.md                     # Project documentation in Markdown
 ```
 
@@ -80,10 +81,10 @@ StereoStreame/
 3. Run the example:
 
    ```bash
-   python example.py
+   python example_metaquest.py
    ```
 
-### example.py
+### example_metaquest.py
 
 ```python
 from StereoStreamer import UdpImageSender

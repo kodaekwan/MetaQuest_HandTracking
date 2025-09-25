@@ -18,7 +18,7 @@ if cam1.is_opened:
 sender = UdpImageSender(
     ip='192.168.0.133', port=9003,
     width=int(640*2), height=480,
-    max_payload=60*1024,
+    max_payload=1024,
     jpeg_quality=50
 )
 sender.open()

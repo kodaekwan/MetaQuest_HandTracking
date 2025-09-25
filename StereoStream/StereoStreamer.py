@@ -113,3 +113,44 @@ class UdpImageSender:
             self.sock.close()
             self.sock = None
             self.connected = False
+    
+
+
+    def set_stereo_params(  self, 
+                            host: str, port: int = 9004,
+                            focus: float | None = None,
+                            quad: float | None = None,
+                            add_focus: bool | None = None,
+                            timeout: float = 3.0):
+        """
+        this function only excute on vision-pro(apple)
+        서버에 접속해서 파라미터를 보낸 뒤 확인 응답을 받고 종료합니다.
+        focus, quad, add_focus 중 필요한 것만 지정하면 됩니다.
+        """
+        import json
+        payload = {}
+        if focus is not None:     payload["focus"] = float(focus)
+        if quad  is not None:     payload["quad"]  = float(quad)
+        if add_focus is not None: payload["addFocus"] = bool(add_focus)
+
+        line = json.dumps(payload)
+
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            sock.sendall((line + "\n").encode("utf-8"))
+            sock.shutdown(socket.SHUT_WR)  # 보내기는 끝
+
+            # 한 줄 응답 수신
+            data = b""
+            while True:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                data += chunk
+
+        text = data.decode("utf-8", errors="ignore").strip()
+        try:
+            resp = json.loads(text)
+        except json.JSONDecodeError:
+            resp = {"raw": text}
+
+        return resp
