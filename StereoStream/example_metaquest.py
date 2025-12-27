@@ -24,26 +24,22 @@ sender = UdpImageSender(
 sender.open()
 sender.connect()
 
-i = 0
+#you can set focus, size
+resp = sender.set_stereo_params("192.168.0.133", focus=0.0, quad=1.8, zoom=1.0, add_focus=False);
+
 try:
     while True:
         # 실제 이미지가 있다면 dummy_img 대신 넘겨주세요
         if cam1.is_opened and cam1.frame_queue:
             c, d, s1, s2 = cam1.frame_queue.popleft()
-            black_image[:,:640,0] = s1.copy();
-            black_image[:,:640,1] = s1.copy();
-            black_image[:,:640,2] = s1.copy();
-
-            black_image[:,640:,0] = s2.copy();
-            black_image[:,640:,1] = s2.copy();
-            black_image[:,640:,2] = s2.copy();
+            black_image[:,:640,0] = s1
+            black_image[:,:640,1] = s1
+            black_image[:,:640,2] = s1
+            black_image[:,640:,0] = s2
+            black_image[:,640:,1] = s2
+            black_image[:,640:,2] = s2
             sender.send_image(black_image)
-        time.sleep(1/30)
-
-        i +=1
-        if(i%60==0):
-            #you can set focus, size
-            resp = sender.set_stereo_params("192.168.0.133", focus=0.0, quad=1.8, zoom=1.0, add_focus=False);
+        time.sleep(1/60)
             
 finally:
     sender.close()
