@@ -7,7 +7,7 @@ import numpy as np
 dummy_img = np.zeros((480, 1280, 3), dtype=np.uint8)
 
 cam1 = RealsenseCamera(name_keyword="D405", height=480, width=640,
-                       fps=30, use_color=True, use_depth=False,
+                       fps=60, use_color=True, use_depth=False,
                        use_streo=True, reset_on_start=True)
 black_image = np.zeros((480, int(640*2), 3), dtype=np.uint8)
 
@@ -18,12 +18,13 @@ if cam1.is_opened:
 sender = UdpImageSender(
     ip='192.168.0.133', port=9003,
     width=int(640*2), height=480,
-    max_payload=1024,
+    max_payload=1400,
     jpeg_quality=50
 )
 sender.open()
 sender.connect()
 
+i = 0
 try:
     while True:
         # 실제 이미지가 있다면 dummy_img 대신 넘겨주세요
@@ -38,5 +39,11 @@ try:
             black_image[:,640:,2] = s2.copy();
             sender.send_image(black_image)
         time.sleep(1/30)
+
+        i +=1
+        if(i%60==0):
+            #you can set focus, size
+            resp = sender.set_stereo_params("192.168.0.133", focus=0.0, quad=1.8, zoom=1.0, add_focus=False);
+            
 finally:
     sender.close()
