@@ -46,8 +46,12 @@ class XRHandReceiver:
             "little":   [21, 22, 23, 24, 25],
         }
 
+        self.previous_pos_list = [];
+        self.previous_quat_list = [];
+
         # 쓰레드 시작
         self._start_threads()
+
 
     def connect(self):
         """UDP 소켓 연결 및 바인드"""
@@ -90,13 +94,18 @@ class XRHandReceiver:
         """가장 최근의 패킷 반환 (없으면 None)"""
         with self._lock:
             return self.packet_queue[-1] if self.packet_queue else None
-
+    
     def convert_unity_pose_to_robot(self, position, quaternion):
         """
         Unity 좌표계 기준의 위치와 쿼터니언을
         로봇 좌표계 기준으로 변환
         """
         pos_robot = self.RM_U2R @ position
+        if np.linalg.norm(position) < 1e-6:
+            print("Warning: Zero position vector received. position={}".format(position))
+        if np.linalg.norm(quaternion) < 1e-6:
+            print("Warning: Zero quaternion vector received. quaternion={}".format(quaternion))
+
         rot_unity = R.from_quat(quaternion)
         rot_robot = self.RM_U2R @ rot_unity.as_matrix() @ self.RM_U2R.T
         return pos_robot, rot_robot
@@ -231,8 +240,8 @@ class XRHandReceiver:
         
         # 각도 클램핑 함수들
         def custom0_clamp_angle(angle):
-            if angle < np.radians(0.0):
-                angle = np.radians(0.0);
+            if angle < np.radians(-10.0):
+                angle = np.radians(-10.0);
             elif angle > np.radians(60.0):
                 angle = np.radians(60.0);
             return angle
@@ -242,8 +251,8 @@ class XRHandReceiver:
                 angle = np.radians(0.0);
             if angle < np.radians(0.0):
                 angle = 0.0;
-            elif angle > np.radians(180.0):
-                angle = np.radians(180.0);
+            elif angle > np.radians(50.0):
+                angle = np.radians(50.0);
             return angle
         
         def custom2_clamp_angle(angle):
@@ -267,7 +276,8 @@ class XRHandReceiver:
         Thumb3_TM = self.get_finger_robotTM_by_parsed(parsed, hand_type, "thumb", Thumb3_idx);
         
         # thumb3 관절을 thumb1 기준 좌표계로 변환
-        Thumb3_TM_in_Thumb1 = Thumb3_TM@np.linalg.inv(Thumb1_TM);
+        Thumb3_TM_in_Thumb1 = np.linalg.inv(Thumb1_TM)@Thumb3_TM;
+
         
         # 각 손가락 4번째 마디 Transformation Matrix 얻기(손목기준, mujoco 좌표계 변환)
         Index4_TM = self.get_finger_robotTM_by_parsed(parsed, hand_type, "index", Index4_idx);
@@ -280,11 +290,13 @@ class XRHandReceiver:
         # 엄지 손가락 x축과 y축 회전 각도 계산
         if hand_type == "left":
             Thumb1_x_angle = wrapTo2Pi(get_x_rotation_angle_based_pos(Thumb1_TM)-np.radians(180.0));    
-            Thumb3_y_angle = wrapTo2Pi(get_x_rotation_angle_based_pos(Thumb3_TM_in_Thumb1)-np.radians(180.0));
+            Thumb3_y_angle = -1.0*get_y_rotation_angle_based_n(Thumb3_TM_in_Thumb1);
+            #print("left Thumb3_y_angle:",np.degrees(Thumb3_y_angle));
         else:
             Thumb1_x_angle = wrapTo2Pi(-1.0*get_x_rotation_angle_based_pos(Thumb1_TM));    
-            Thumb3_y_angle = wrapTo2Pi(-1.0*get_x_rotation_angle_based_pos(Thumb3_TM_in_Thumb1));
-            
+            Thumb3_y_angle = -1.0*get_y_rotation_angle_based_n(Thumb3_TM_in_Thumb1);
+            #print("right Thumb3_y_angle:",np.degrees(Thumb3_y_angle));
+        
         Thumb1_x_angle  = custom0_clamp_angle(Thumb1_x_angle);
         Thumb3_y_angle  = custom1_clamp_angle(Thumb3_y_angle);
 
@@ -303,7 +315,7 @@ class XRHandReceiver:
                                         Index4_y_angle, Middle4_y_angle,
                                         Ring4_y_angle, Little4_y_angle]);
         # 정규화된 관절 각도 벡터 생성
-        norm_finger_angle_vec = finger_angle_vec/np.array([np.radians(60), np.radians(180), np.radians(180), np.radians(180), np.radians(180), np.radians(180)]);# 0~1 정규화
+        norm_finger_angle_vec = finger_angle_vec/np.array([np.radians(70), np.radians(50), np.radians(180), np.radians(180), np.radians(180), np.radians(180)]);# 0~1 정규화
 
         return finger_angle_vec, norm_finger_angle_vec;
     
