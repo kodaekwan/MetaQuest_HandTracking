@@ -1,0 +1,24 @@
+{
+    "name": "zed_camera",
+    "width": 1280,
+    "height": 720,
+    "fps": 60,
+    "depth_mode": 0,
+    
+    "stream_target_ip": "192.168.0.140",
+    "stream_port": 9003,
+    "stream_width": 640,
+    "stream_height": 480,
+    "stream_quality": 90,
+    "auto_stream": false,
+    
+    "stereo_params_port": 9004,
+    "stereo_focus": 1.0,
+    "stereo_quad": 1.2,
+    "stereo_zoom": 1.0,
+    "stereo_add_focus": false,
+    
+    "output_folder": "./recordings",
+    "enable_preview": false,
+    "control_port": 0
+}

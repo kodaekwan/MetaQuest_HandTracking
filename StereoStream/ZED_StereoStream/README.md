@@ -1,84 +1,108 @@
-# ZED Stereo Stream for Apple Vision Pro (or Meta Quest)
+# ZED Stereo Camera Manager
 
-ZED 카메라에서 스테레오 영상을 캡처하여 Apple Vision Pro(또는 Meta Quest)로 UDP 스트리밍하고, 영상을 녹화하는 시스템입니다.
+A high-performance C++ camera manager for ZED stereo cameras with Python interface. Features UDP streaming to Apple Vision Pro / Meta Quest, QR-based robot time synchronization, video recording with metadata, and real-time frame sharing via POSIX shared memory.
 
-## 📁 프로젝트 구조
+## Author
 
-```
-ZED_StereoStream/
-├── cpp/                          # C++ 서버 애플리케이션
-│   ├── src/
-│   │   ├── main_visionpro.cpp    # 스트리밍 서버 메인 코드
-│   │   └── main.cpp              # 카메라 컨트롤 예제 (원본)
-│   ├── CMakeLists.txt            # CMake 빌드 설정
-│   ├── ZED_VisionPro_Stream      # 빌드된 스트리밍 서버 실행 파일
-│   └── recordings/               # 녹화 파일 저장 폴더
-│
-├── python/                       # Python 컨트롤러 클라이언트
-│   ├── visionpro_controller.py   # 컨트롤러 클래스 라이브러리
-│   └── example_controller.py     # 사용 예제 스크립트
-│
-└── README.md                     # 이 문서
-```
-
-## 🔧 시스템 아키텍처
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Docker Container                                │
-│  ┌─────────────┐      ┌──────────────────────────────────────────────┐  │
-│  │ ZED Camera  │─────>│ ZED_VisionPro_Stream (C++ Server)            │  │
-│  └─────────────┘      │  • TCP Control Server (포트: 12345)          │  │
-│                       │  • UDP Stereo Streaming                      │  │
-│                       │  • Video Recording (MP4)                     │  │
-│                       └──────────────────────────────────────────────┘  │
-└───────────────────────────────────┬─────────────────────────────────────┘
-                                    │
-                          ┌─────────┴─────────┐
-                          │   TCP Commands    │
-                          │   UDP Stream      │
-                          └─────────┬─────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        ▼                           ▼                           ▼
-┌───────────────────┐    ┌───────────────────┐    ┌───────────────────┐
-│ Python Controller │    │ Apple Vision Pro  │    │   Meta Quest      │
-│ (명령 전송)       │    │ (영상 수신)       │    │ (영상 수신)       │
-└───────────────────┘    └───────────────────┘    └───────────────────┘
-```
-
-## 📋 요구 사항
-
-- ZED 카메라 (ZED 2, ZED Mini 등)
-- NVIDIA GPU (CUDA 지원)
-- Docker
-- X11 Display Server (로컬 또는 원격)
+**Daekwan Ko (kodaekwan)**  
+Ph.D Student  
+Interactive Robotics Lab  
+Dongguk University
 
 ---
 
-## 🐳 Docker 환경 설정
+## Features
 
-### 1. Docker 이미지 다운로드
+### 🎥 ZED Stereo Camera
+- ZED 2, ZED Mini, ZED 2i support
+- Configurable resolution (VGA, HD720, HD1080, HD2K)
+- Side-by-side stereo image output
+- Docker-based deployment (CUDA/GPU support)
 
-gl-devel 버전을 사용해야 OpenCV 개발이 가능합니다:
+### 📡 XR Device Streaming
+- **UDP streaming** to Apple Vision Pro / Meta Quest
+- JPEG compression with adjustable quality
+- Configurable resolution and frame rate
+- Stereo parameter control (focus, quad, zoom)
+
+### ⏱️ Time Synchronization
+ - **QR-based robot time sync**: Capture QR codes with PC/Robot timestamps
+ - **Microsecond precision**: All timestamps are handled in μs internally
+ - **Robust parsing (timezone-aware)**: `parseTimestampToUs()` attempts multiple interpretations
+     (local, UTC, and Asia/Seoul (KST)) and selects the one closest to the current system time to
+     mitigate ambiguous timestamp strings coming from different hosts/timezones.
+ - **Microsecond diagnostic**: The camera manager logs whether the parsed QR PC timestamp
+     contains microsecond precision (✅) or appears to be only millisecond precision (⚠️).
+ - **Dual interpolation methods**:
+     - System time-based: Uses PC clock
+     - Camera time-based: Uses ZED hardware clock (more precise)
+
+### 📹 Video Recording
+- MP4 video recording with OpenCV
+- **CSV metadata** for each video:
+  - Frame number, camera/system timestamps
+  - QR detection status and parsed times
+  - Interpolated robot time (dual methods)
+
+### 🔗 Shared Memory Interface
+- Real-time stereo frame sharing via POSIX shared memory
+- Zero-copy access for Python interface
+- Command interface for control without TCP
+
+### 🐍 Python Interface
+- **TCP Control**: Remote command interface
+- **Shared Memory**: Direct frame access
+- Combined interface for both methods
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Container (CUDA)                       │
+│                                                                  │
+│  ┌─────────────┐      ┌──────────────────────────────────────┐  │
+│  │ ZED Camera  │─────>│ zed_camera_manager (C++)             │  │
+│  │  (Stereo)   │      │  • TCP Control Server (port auto)    │  │
+│  └─────────────┘      │  • UDP Stereo Streaming              │  │
+│                       │  • Video Recording + CSV Metadata     │  │
+│                       │  • QR Recognition (ZBar)              │  │
+│                       │  • Shared Memory Interface            │  │
+│                       └──────────────┬───────────────────────┘  │
+│                                      │                          │
+│              ┌───────────────────────┼───────────────────┐      │
+│              │    Shared Memory      │                   │      │
+│              │  /zed_status          │                   │      │
+│              │  /zed_frame           │                   │      │
+│              │  /zed_command         │                   │      │
+│              └───────────────────────┼───────────────────┘      │
+└──────────────────────────────────────┼──────────────────────────┘
+                                       │
+             ┌─────────────────────────┼─────────────────────────┐
+             │                         │                         │
+             ▼                         ▼                         ▼
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+    │ Python Interface│    │ Apple Vision Pro│    │   Meta Quest    │
+    │ (TCP + SHM)     │    │ (UDP Stream)    │    │ (UDP Stream)    │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+---
+
+## Installation
+
+### Docker Environment (Recommended)
 
 ```bash
+# 1. Pull ZED SDK Docker image
 docker pull stereolabs/zed:5.1-gl-devel-cuda12.8-ubuntu24.04
-```
 
-### 2. 프로젝트 클론
-
-```bash
+# 2. Clone repository
 git clone https://github.com/kodaekwan/MetaQuest_HandTracking.git
-cd MetaQuest_HandTracking
-```
+cd MetaQuest_HandTracking/StereoStream/ZED_StereoStream
 
-### 3. Docker 컨테이너 실행
-
-#### 3-1. 로컬 환경 (X11 디스플레이 직접 연결)
-
-```bash
-# X11 접근 권한 허용
+# 3. Run Docker container
 xhost +local:root
 
 docker run --gpus all \
@@ -87,165 +111,265 @@ docker run --gpus all \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v /dev/bus/usb:/dev/bus/usb \
-    -v ./StereoStream/ZED_StereoStream:/usr/local/zed/samples/ZED_StereoStream \
+    -v $(pwd):/app \
+    --network=host \
     stereolabs/zed:5.1-gl-devel-cuda12.8-ubuntu24.04
+
+# 4. Build inside container
+cd /app
+chmod +x build_zed_manager.sh
+# If you see CMake cache or mismatch errors, clean stale CMake files first:
+# (helps when switching between host/container builds)
+rm -f CMakeCache.txt
+rm -rf CMakeFiles/ build/
+cmake -S . -B build
+cmake --build build -j4
+./build_zed_manager.sh
 ```
 
-#### 3-2. 원격 환경 (XLaunch 사용)
-
-Windows의 XLaunch 또는 원격 X11 서버 사용 시:
+### (Option)Using Dockerfile
 
 ```bash
+# Build custom image
+docker build -t zed-manager:latest .
+
+# Run container
 docker run --gpus all \
     -it \
     --privileged \
-    -e DISPLAY=192.168.0.201:0.0 \
-    -v ./StereoStream/ZED_StereoStream:/usr/local/zed/samples/ZED_StereoStream \
+    -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v /dev/bus/usb:/dev/bus/usb \
+    -v $(pwd)/recordings:/app/recordings \
     --network=host \
-    stereolabs/zed:5.1-gl-devel-cuda12.8-ubuntu24.04
+    zed-manager:latest
 ```
 
-> ⚠️ `DISPLAY` 환경 변수를 자신의 X11 서버 IP로 변경하세요.
-
----
-
-## 🔨 빌드 방법
-
-Docker 컨테이너 내부에서 실행:
+### Python Dependencies (Host)
 
 ```bash
-# 프로젝트 폴더로 이동
-cd /usr/local/zed/samples/ZED_StereoStream/cpp
-
-# 필수 패키지 설치 (최초 1회)
-apt update && apt install -y usbutils libopencv-dev
-
-# CMake 빌드
-cmake .
-make
+pip install posix_ipc numpy opencv-python
 ```
-
-빌드가 완료되면 `ZED_VisionPro_Stream` 실행 파일이 생성됩니다.
 
 ---
 
-## 🚀 C++ 서버 실행
+## Configuration
+
+### zed_config.json
+
+```json
+{
+    "name": "zed_camera",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "depth_mode": 0,
+    
+    "stream_target_ip": "192.168.0.140",
+    "stream_port": 9003,
+    "stream_width": 640,
+    "stream_height": 480,
+    "stream_quality": 50,
+    
+    "stereo_params_port": 9004,
+    "stereo_focus": 0.5,
+    "stereo_quad": 1.8,
+    "stereo_zoom": 1.0,
+    "stereo_add_focus": false,
+    
+    "output_folder": "./recordings",
+    "enable_preview": false,
+    "control_port": 0
+}
+```
+
+### Configuration Options
+
+| Option | Description |
+|--------|-------------|
+| `name` | Camera display name |
+| `width`, `height` | Camera resolution |
+| `fps` | Frame rate |
+| `depth_mode` | 0=NONE, 1=PERFORMANCE, etc. |
+| `stream_target_ip` | XR device IP (empty = no auto-start) |
+| `stream_port` | UDP streaming port |
+| `stream_width/height` | Stream resolution |
+| `stream_quality` | JPEG quality (1-100) |
+| `stereo_params_port` | TCP port for stereo params (default: 9004) |
+| `stereo_focus` | Stereo focus value (0.0-1.0) |
+| `stereo_quad` | Stereo quad value |
+| `stereo_zoom` | Stereo zoom value |
+| `stereo_add_focus` | Additional focus mode (true/false) |
+| `control_port` | TCP control port (0 = auto) |
+
+---
+
+## Usage
+
+### Start Camera Manager (C++)
 
 ```bash
-# 기본 실행 (포트 자동 할당)
-./ZED_VisionPro_Stream
+# Inside Docker container
+./zed_camera_manager
 
-# 특정 포트로 실행
-./ZED_VisionPro_Stream --port 12345
-
-# 미리보기 창 활성화
-./ZED_VisionPro_Stream --port 12345 --preview
+# With options
+./zed_camera_manager --config zed_config.json
+./zed_camera_manager --preview
+./zed_camera_manager --port 12345
+./zed_camera_manager --stream 192.168.0.140
 ```
 
-### 실행 옵션
+### Command Line Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--port <port>` | TCP 제어 서버 포트 (0: 자동 할당) |
-| `--preview` | OpenCV 미리보기 창 표시 |
-| `--help` | 도움말 출력 |
+| Option | Description |
+|--------|-------------|
+| `--config <file>` | Configuration file |
+| `--port <port>` | TCP control port (0=auto) |
+| `--preview` | Enable preview window |
+| `--stream <ip>` | Auto-start streaming to IP |
+| `--help` | Show help |
 
-### 서버 실행 후 상태
+### Python Interface CLI
 
-서버가 실행되면 대기 상태(IDLE)로 진입하며, Python 컨트롤러의 명령을 기다립니다:
+```bash
+# View mode with shared memory (basic)
+python zed_interface.py --action view
 
+# View mode with TCP controller for streaming control
+python zed_interface.py --action view --port <tcp_port> --ip <xr_device_ip>
+
+# Get status via shared memory
+python zed_interface.py --action status
+
+# Get status via TCP
+python zed_interface.py --action status --port <tcp_port>
 ```
-=== ZED Camera ===
-Model: ZED 2
-Serial: 12345678
-Resolution: 672x376
 
-========================================
-[Control Server] Listening on port: 12345
-========================================
+| Option | Description |
+|--------|-------------|
+| `--action` | `view`, `status`, `record`, `stream` |
+| `--port` | TCP control port (enables streaming toggle) |
+| `--host` | Camera manager host (default: localhost) |
+| `--ip` | XR device IP for streaming |
 
-[Ready] Waiting for commands...
-```
+### Python Interface
 
----
-
-## 🐍 Python 컨트롤러 사용법
-
-### 기본 사용법
+#### TCP Control
 
 ```python
-from visionpro_controller import VisionProController
+from zed_interface import ZedController
 
-# 서버에 연결
-controller = VisionProController("localhost", 12345)
+# Connect to camera manager
+controller = ZedController("localhost", 12345)
 
-# 스트리밍 시작
+# Start streaming to Vision Pro
 controller.start_stream(
-    ip="192.168.0.140",    # Vision Pro IP
-    port=9003,              # UDP 포트
-    quality=50,             # JPEG 품질 (1-100)
-    width=640,              # 스트림 너비
-    height=480              # 스트림 높이
+    ip="192.168.0.140",
+    port=9003,
+    quality=50,
+    width=640,
+    height=480
 )
 
-# 녹화 시작
-controller.start_record(
-    path="./recordings",    # 저장 폴더
-    filename="my_video"     # 파일명 (자동으로 .mp4 추가)
+# Start recording
+result = controller.start_record(
+    path="./recordings",
+    filename="my_video"
 )
+print(f"Recording: {result['filepath']}")
 
-# 상태 확인
+# Get status
 status = controller.get_status()
-print(status)
+print(f"Streaming: {status['streaming']}")
+print(f"Recording: {status['recording']}")
 
-# 녹화 중지
+# Set stereo parameters for Vision Pro
+controller.set_stereo_params(
+    target_ip="192.168.0.140",
+    focus=0.5,
+    quad=1.8,
+    zoom=1.0
+)
+
+# Stop
 controller.stop_record()
-
-# 스트리밍 중지
 controller.stop_stream()
-
-# 서버 종료
 controller.quit()
 ```
 
-### 대화형 모드
+#### Shared Memory (Real-time Frames)
 
-```bash
-cd /usr/local/zed/samples/ZED_StereoStream/python
-python3 example_controller.py --interactive
+```python
+from zed_interface import ZedInterface
+
+# Connect to shared memory
+interface = ZedInterface()
+interface.connect()
+
+while True:
+    # Get frame with timestamps
+    frame_data = interface.get_frame(wait_new=True)
+    
+    if frame_data.valid:
+        # Access stereo image (side-by-side)
+        stereo_image = frame_data.frame  # numpy array (H, W*2, 3)
+        
+        # Get timestamps
+        camera_us = frame_data.camera_timestamp_us
+        system_us = frame_data.system_timestamp_us
+        
+        # Get interpolated robot time
+        robot_us = frame_data.get_interpolated_robot_time_us()
+        robot_cam_us = frame_data.get_interpolated_robot_time_cam_us()
+        
+        # Time since last QR sync
+        delta_us = frame_data.get_sync_delta_us()
+        
+        print(f"Frame {frame_data.frame_counter}, Robot time: {robot_us} us")
+
+interface.disconnect()
 ```
 
-### 커맨드라인 사용
+#### Combined Interface
 
-```bash
-# 상태 확인
-python3 visionpro_controller.py --port 12345 --action status
+```python
+from zed_interface import ZedCameraInterface
 
-# 스트리밍 시작
-python3 visionpro_controller.py --port 12345 --action start_stream --ip 192.168.0.140
+# Combined TCP + Shared Memory
+zed = ZedCameraInterface()
+zed.connect(host="localhost", port=12345, use_shm=True)
 
-# 녹화 시작
-python3 visionpro_controller.py --port 12345 --action start_record --path ./videos --filename test
+# TCP commands
+zed.start_stream("192.168.0.140")
+zed.start_record()
 
-# 녹화 중지
-python3 visionpro_controller.py --port 12345 --action stop_record
+# Real-time frame access
+while running:
+    frame = zed.get_frame(wait_new=True)
+    if frame.valid:
+        robot_time = frame.get_interpolated_robot_time_us()
+        # Process frame...
 
-# 스트리밍 중지
-python3 visionpro_controller.py --port 12345 --action stop_stream
-
-# 서버 종료
-python3 visionpro_controller.py --port 12345 --action quit
+zed.disconnect()
 ```
+
+### Keyboard Controls (Python interface test)
+
+| Key | Description |
+|-----|-------------|
+| `q` | Quit |
+| `p` | Toggle preview |
+| `r` | Toggle recording |
+| `s` | Toggle XR streaming (requires `--port`) |
+| `c` | Cycle color mode (BGR/RGB) |
+
+**Note:** Stereo parameters are automatically sent to XR device on startup based on config values.
 
 ---
 
-## 📡 TCP 제어 명령어 (JSON)
+## TCP Commands (JSON)
 
-직접 TCP 소켓으로 제어하려면 아래 JSON 형식 사용:
-
-### 스트리밍 시작
+### Start Streaming
 ```json
 {
     "action": "start_stream",
@@ -257,156 +381,230 @@ python3 visionpro_controller.py --port 12345 --action quit
 }
 ```
 
-### 스트리밍 중지
+### Stop Streaming
 ```json
 {"action": "stop_stream"}
 ```
 
-### 녹화 시작
+### Start Recording
 ```json
 {
     "action": "start_record",
     "path": "./recordings",
-    "filename": "recording"
+    "filename": "video"
 }
 ```
 
-### 녹화 중지
+### Stop Recording
 ```json
 {"action": "stop_record"}
 ```
 
-### 상태 조회
+### Get Status
 ```json
 {"action": "get_status"}
 ```
 
-**응답 예시:**
+**Response:**
 ```json
 {
     "status": "ok",
-    "state": "streaming_recording",
     "streaming": "true",
     "recording": "true",
-    "recording_file": "./recordings/recording.mp4",
+    "recording_file": "./recordings/video.mp4",
+    "camera_serial": "12345678",
     "control_port": "12345"
 }
 ```
 
-### 스테레오 파라미터 설정 (외부 기기로 전달)
+### Set Stereo Parameters (for XR device)
 ```json
 {
     "action": "set_stereo_params",
     "target_ip": "192.168.0.140",
     "target_port": 9004,
-    "focus": 1.0,
+    "focus": 0.5,
     "quad": 1.8,
     "zoom": 1.0
 }
 ```
 
-### 서버 종료
+### Shutdown
 ```json
 {"action": "quit"}
 ```
 
 ---
 
-## 📊 상태 (State) 종류
+## QR Time Synchronization
 
-| 상태 | 설명 |
-|------|------|
-| `idle` | 대기 상태 |
-| `streaming` | 스트리밍만 진행 중 |
-| `recording` | 녹화만 진행 중 |
-| `streaming_recording` | 스트리밍 + 녹화 동시 진행 |
-| `stopped` | 서버 종료됨 |
+Display a QR code containing JSON with PC and robot timestamps. Example payloads accepted by
+the QR generator used in this project typically look like:
+
+```json
+{
+        "PC": "2026-02-14 17:55:25.577",
+        "Robot": "2026-02-14 17:55:25.623945+09:00"
+}
+```
+
+Key behaviors implemented in `zed_camera_manager.cpp`:
+- QR detection using ZBar with timer-based scanning (default ~700 ms; faster during initial
+    recording/startup to reduce first-frame latency).
+- When a QR is detected the manager records: parsed `PC` time, parsed `Robot` time, and the
+    ZED camera hardware timestamp at the instant of detection.
+- `parseTimestampToUs()` now attempts multiple timezone interpretations (local, UTC, KST) and
+    chooses the interpretation closest to the running system time to avoid large offsets when the
+    QR-origin host uses a different timezone.
+- A microsecond-precision diagnostic is printed in the logs after each QR parse under the
+    "[QR] Sync Detail:" output. Look for either:
+
+    - `✅ QR has μs precision`  (parsed PC timestamp includes microseconds)
+    - `⚠️ QR seems ms-precision only` (no μs part detected; interpolation may be coarser)
+
+- Interpolation formulas used for per-frame robot time are unchanged conceptually but use
+    μs units internally:
+
+```
+# System time-based interpolation
+interpolated_robot_us = last_qr_robot + (system_timestamp_us - last_qr_pc_timestamp_us)
+
+# Camera time-based interpolation (more precise)
+interpolated_robot_cam_us = last_qr_robot + (camera_timestamp_us - last_qr_cam_timestamp_us)
+```
+
+Notes & recommendations:
+- If you keep seeing large PC↔CAM offsets after these parser heuristics, prefer encoding an
+    unambiguous epoch microsecond field (e.g. `"pc_epoch_us": 1676394925577000`) in the QR
+    payload — this removes timezone/format ambiguity.
+- Check runtime logs for the full `[QR] Sync Detail:` block to verify which timezone
+    interpretation was chosen and whether μs precision was detected.
 
 ---
 
-## 💾 Docker 이미지 저장 및 재로드
+## Metadata CSV Format
 
-### 현재 컨테이너를 이미지로 저장
+| Column | Description |
+|--------|-------------|
+| `frame_number` | Frame sequence number |
+| `camera_timestamp_us` | ZED hardware timestamp (μs) |
+| `system_timestamp_us` | PC system timestamp (μs) |
+| `global_time` | Human-readable time |
+| `qr_detected` | QR detected this frame |
+| `qr_pc_time` | PC time from QR |
+| `qr_robot_time` | Robot time from QR |
+| `last_qr_pc_timestamp_us` | Last QR PC time (μs) |
+| `last_qr_robot_timestamp_us` | Last QR robot time (μs) |
+| `last_qr_cam_timestamp_us` | Camera HW timestamp at QR detection |
+| `interpolated_robot_us` | System clock based interpolation |
+| `interpolated_robot_cam_us` | Camera clock based interpolation |
 
-Docker 컨테이너에서 OpenCV 등을 설치한 후, 매번 재설치하지 않도록 이미지로 저장합니다:
+---
+
+## File Structure
+
+```
+zed_manager_ws/
+├── zed_camera_manager.cpp      # Main C++ application
+├── zed_shared_memory.h         # Shared memory structures
+├── zed_interface.py            # Python interface
+├── zed_config.json             # Configuration file
+├── CMakeLists.txt              # CMake build configuration
+├── build_zed_manager.sh        # Build script
+├── Dockerfile                  # Docker build file
+├── README.md                   # This file
+├── LICENSE                     # MIT License
+├── .gitignore                  # Git ignore rules
+└── recordings/                 # Default output folder
+    ├── zed_camera_*.mp4
+    └── zed_camera_*_metadata.csv
+```
+
+---
+
+## Docker Image Management
+
+### Save Container as Image
 
 ```bash
-# 1. 실행 중인 컨테이너 ID 확인
+# Find container ID
 docker ps
 
-# 2. 컨테이너를 새 이미지로 저장
-docker commit <CONTAINER_ID> zed-visionpro:latest
-
-# 예시: docker commit a1b2c3d4e5f6 zed-visionpro:latest
+# Save container
+docker commit <CONTAINER_ID> zed-manager:latest
 ```
 
-### 저장된 이미지로 컨테이너 실행
+### Export/Import Image
 
 ```bash
-xhost +local:root
+# Export to file
+docker save -o zed-manager.tar zed-manager:latest
 
-docker run --gpus all \
-    -it \
-    --privileged \
-    -e DISPLAY=$DISPLAY \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    -v /dev/bus/usb:/dev/bus/usb \
-    -v ./StereoStream/ZED_StereoStream:/usr/local/zed/samples/ZED_StereoStream \
-    zed-visionpro:latest
-```
-
-### 이미지를 파일로 내보내기 (백업/이동용)
-
-```bash
-# 이미지를 tar 파일로 저장
-docker save -o zed-visionpro.tar zed-visionpro:latest
-
-# tar 파일에서 이미지 로드
-docker load -i zed-visionpro.tar
-```
-
-### 모든 Docker 이미지 목록 확인
-
-```bash
-docker images
+# Import from file
+docker load -i zed-manager.tar
 ```
 
 ---
 
-## 🔧 문제 해결
+## Troubleshooting
 
-### ZED 카메라가 인식되지 않는 경우
+### Camera Not Detected
 
 ```bash
-# USB 장치 확인
+# Check USB connection
 lsusb | grep -i stereolabs
 
-# 권한 문제 시
+# Inside Docker, check ZED
+ls /dev/video*
+
+# USB permissions
 chmod 666 /dev/bus/usb/*/*
 ```
 
-### X11 디스플레이 오류
+### Shared Memory Error
 
 ```bash
-# 호스트에서 실행
+# Clean up shared memory
+rm /dev/shm/zed_*
+```
+
+### X11 Display Error
+
+```bash
+# On host
 xhost +local:root
 
-# 환경 변수 확인
+# Check DISPLAY variable
 echo $DISPLAY
 ```
 
-### OpenCV 창이 표시되지 않는 경우
+### Build Errors
 
-`--preview` 옵션 없이 실행하거나, 원격 환경인 경우 DISPLAY 설정을 확인하세요.
+```bash
+# Check dependencies
+pkg-config --exists zed && echo "ZED OK"
+pkg-config --exists opencv4 && echo "OpenCV OK"
+pkg-config --exists zbar && echo "ZBar OK"
+```
 
 ---
 
-## 📝 라이센스
+## License
 
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 관련 링크
+---
 
-- [ZED SDK Documentation](https://www.stereolabs.com/docs/)
-- [ZED Docker Hub](https://hub.docker.com/r/stereolabs/zed)
-- [MetaQuest_HandTracking Repository](https://github.com/kodaekwan/MetaQuest_HandTracking)
+## Related Projects
+
+- [Intel RealSense Manager](../realsense_manager_ws) - Similar manager for RealSense cameras
+- [ZED SDK](https://www.stereolabs.com/docs/)
+- [MetaQuest_HandTracking](https://github.com/kodaekwan/MetaQuest_HandTracking)
+
+---
+
+## Contact
+
+For questions or issues:
+- **Daekwan Ko** - Ph.D Student
+- **Lab**: Interactive Robotics Lab, Dongguk University
