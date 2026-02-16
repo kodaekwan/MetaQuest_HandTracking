@@ -95,6 +95,9 @@ Dongguk University
 ### Docker Environment (Recommended)
 
 ```bash
+# 0. (option) if docker is default
+sudo apt-get install -y nvidia-docker2
+
 # 1. Pull ZED SDK Docker image
 docker pull stereolabs/zed:5.1-gl-devel-cuda12.8-ubuntu24.04
 
@@ -118,13 +121,14 @@ docker run --gpus all \
 # 4. Build inside container
 cd /app
 chmod +x build_zed_manager.sh
+./build_zed_manager.sh
+
 # If you see CMake cache or mismatch errors, clean stale CMake files first:
 # (helps when switching between host/container builds)
 rm -f CMakeCache.txt
 rm -rf CMakeFiles/ build/
 cmake -S . -B build
 cmake --build build -j4
-./build_zed_manager.sh
 ```
 
 ### (Option)Using Dockerfile
