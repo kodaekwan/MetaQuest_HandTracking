@@ -114,6 +114,7 @@ docker run --gpus all \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v /dev/bus/usb:/dev/bus/usb \
+    -v /dev/shm:/dev/shm \
     -v $(pwd):/app \
     --network=host \
     stereolabs/zed:5.1-gl-devel-cuda12.8-ubuntu24.04
@@ -236,8 +237,11 @@ pip install posix_ipc numpy opencv-python
 ### Python Interface CLI
 
 ```bash
-# View mode with shared memory (basic)
+#[in docker] View mode with shared memory (basic)
 python zed_interface.py --action view
+
+#[out docker] View mode with shared memory(basic)
+sudo python zed_interface.py --action view
 
 # View mode with TCP controller for streaming control
 python zed_interface.py --action view --port <tcp_port> --ip <xr_device_ip>
@@ -538,8 +542,27 @@ docker ps
 docker commit <CONTAINER_ID> zed-manager:latest
 ```
 
-### Export/Import Image
+### Deployment: Run the Saved Image
+This is the standard command to launch your saved zed-manager:latest image with full hardware (GPU/USB) and GUI support.
+```bash
+# Allow local connections to the X server for GUI tools (ZED Explorer, etc.)
+xhost +local:root
 
+# Run the saved image with necessary hardware passthrough
+docker run --gpus all \
+    -it --rm \
+    --privileged \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v /dev/bus/usb:/dev/bus/usb \
+    -v /dev/shm:/dev/shm \
+    -v $(pwd):/app \
+    --network=host \
+    zed-manager:latest
+```
+
+### Export/Import Image
+Move your configured environment to another workstation without re-building.
 ```bash
 # Export to file
 docker save -o zed-manager.tar zed-manager:latest
