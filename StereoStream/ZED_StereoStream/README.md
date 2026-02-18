@@ -145,7 +145,8 @@ docker run --gpus all \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v /dev/bus/usb:/dev/bus/usb \
-    -v $(pwd)/recordings:/app/recordings \
+    -v /dev/shm:/dev/shm \
+    -v $(pwd):/app \
     --network=host \
     zed-manager:latest
 ```

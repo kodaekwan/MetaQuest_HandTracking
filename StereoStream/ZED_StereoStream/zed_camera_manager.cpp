@@ -408,7 +408,7 @@ int64_t parseTimestampToUs(const string& timestamp) {
     // KST (Asia/Seoul) interpretation: PC time is KST (UTC+9). To convert the
     // wall-clock KST `tm_info` to epoch (UTC), subtract 9 hours from the UTC
     // interpretation computed by timegm.
-    const int64_t KST_OFFSET_S = 9LL * 3600LL;
+    const int64_t KST_OFFSET_S = 0LL;
     int64_t result_kst = static_cast<int64_t>(utc_time - KST_OFFSET_S) * 1000000 + micros;
 
     int64_t diff_local = llabs(result_local - now_us);

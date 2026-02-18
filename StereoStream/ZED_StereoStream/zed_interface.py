@@ -492,8 +492,20 @@ class ZedInterface:
         return frame.get_sync_delta_us() if frame.valid else -1
     
     # Command shortcuts (via shared memory)
+    #
+    # C++ Command struct memory layout:
+    #   offset  0: command_counter  (uint64, 8 bytes)
+    #   offset  8: last_processed   (uint64, 8 bytes)
+    #   offset 16: type             (uint8,  1 byte)
+    #   offset 20: camera_index     (uint32, 4 bytes)  -- aligned
+    #   offset 24: params union     (variable)
+    #     recording: path[256] + filename[64]
+    #     streaming: target_ip[32] + port(u16) + width(u16) + height(u16) + quality(u8)
+    #
+    COMMAND_PARAMS_OFFSET = 24  # Start of params union in Command struct
+
     def _send_shm_command(self, cmd_type: int, **kwargs):
-        """Send command via shared memory"""
+        """Send command via shared memory, including parameter data"""
         if not self.connected or not self.command_mmap:
             return False
         
@@ -501,12 +513,42 @@ class ZedInterface:
         self.command_mmap.seek(0)
         counter = int.from_bytes(self.command_mmap.read(8), 'little')
         
-        # Write new command
+        # Write command type
+        self.command_mmap.seek(16)  # offset of 'type'
+        self.command_mmap.write(bytes([cmd_type]))
+        
+        # Write parameters into the params union at offset 24
+        params_offset = self.COMMAND_PARAMS_OFFSET
+        
+        if cmd_type == CommandType.CMD_START_RECORDING:
+            # recording struct: path[PATH_LEN=256] + filename[CAMERA_NAME_LEN=64]
+            path = kwargs.get('path', '').encode('utf-8')
+            filename = kwargs.get('filename', '').encode('utf-8')
+            # Pad/truncate to fixed sizes
+            path_padded = path[:PATH_LEN].ljust(PATH_LEN, b'\x00')
+            filename_padded = filename[:CAMERA_NAME_LEN].ljust(CAMERA_NAME_LEN, b'\x00')
+            self.command_mmap.seek(params_offset)
+            self.command_mmap.write(path_padded)
+            self.command_mmap.write(filename_padded)
+        elif cmd_type == CommandType.CMD_START_STREAMING:
+            # streaming struct: target_ip[32] + port(u16) + width(u16) + height(u16) + quality(u8)
+            ip = kwargs.get('ip', '').encode('utf-8')
+            ip_padded = ip[:IP_ADDR_LEN].ljust(IP_ADDR_LEN, b'\x00')
+            port = kwargs.get('port', 9003)
+            width = kwargs.get('width', 640)
+            height = kwargs.get('height', 480)
+            quality = kwargs.get('quality', 50)
+            self.command_mmap.seek(params_offset)
+            self.command_mmap.write(ip_padded)
+            self.command_mmap.write(port.to_bytes(2, 'little'))
+            self.command_mmap.write(width.to_bytes(2, 'little'))
+            self.command_mmap.write(height.to_bytes(2, 'little'))
+            self.command_mmap.write(bytes([quality]))
+        
+        # Increment counter last (acts as a memory fence for the reader)
         self.command_mmap.seek(0)
         new_counter = counter + 1
         self.command_mmap.write(new_counter.to_bytes(8, 'little'))
-        self.command_mmap.seek(16)  # Skip last_processed
-        self.command_mmap.write(bytes([cmd_type]))
         
         return True
     
@@ -516,8 +558,8 @@ class ZedInterface:
     def stop_preview(self) -> bool:
         return self._send_shm_command(CommandType.CMD_STOP_PREVIEW)
     
-    def start_recording(self, path: str = "./recordings") -> bool:
-        return self._send_shm_command(CommandType.CMD_START_RECORDING, path=path)
+    def start_recording(self, path: str = "./recordings", filename: str = "") -> bool:
+        return self._send_shm_command(CommandType.CMD_START_RECORDING, path=path, filename=filename)
     
     def stop_recording(self) -> bool:
         return self._send_shm_command(CommandType.CMD_STOP_RECORDING)
@@ -667,6 +709,7 @@ if __name__ == "__main__":
         color_modes = ["Original (BGR)", "RGB2BGR", "BGR2RGB"]
         color_mode = 0
         recording = False
+        rcount = 0
         
         try:
             while True:
@@ -737,7 +780,7 @@ if __name__ == "__main__":
                     if not recording:
                         interface.start_recording()
                         recording = True
-                        print("Recording started")
+                        print("Recording started!")
                     else:
                         interface.stop_recording()
                         recording = False
